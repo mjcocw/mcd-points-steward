@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1440" width="1080" height="1440" role="img" aria-label="麦当劳积分体检报告：143 积分早已过期">
+  <rect width="1080" height="1440" fill="#12141a"/>
+  <rect x="0" y="0" width="1080" height="10" fill="#DA291C"/>
+  <rect x="0" y="10" width="1080" height="6" fill="#FFC72C"/>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif">
+
+    <text x="64" y="118" fill="#8b929e" font-size="24" font-weight="500">McPoints Steward · 积分资产体检</text>
+
+    <rect x="64" y="152" width="952" height="204" rx="20" fill="#2a1416" stroke="#DA291C" stroke-width="2"/>
+    <text x="96" y="212" fill="#FF8A80" font-size="26" font-weight="500">你的积分早就过期了</text>
+    <text x="96" y="268" fill="#ffffff" font-size="34" font-weight="700">而麦当劳没有提醒过你</text>
+    <text x="96" y="322" fill="#c9ced8" font-size="23">这不是个bug，是你从来没算过这笔账。</text>
+
+    <rect x="64" y="392" width="466" height="176" rx="18" fill="#1c1f27"/>
+    <text x="96" y="440" fill="#8b929e" font-size="21">卡包里躺着没用的券</text>
+    <text x="96" y="502" fill="#FFC72C" font-size="52" font-weight="700">¥ 117</text>
+    <text x="96" y="542" fill="#8b929e" font-size="19">零成本，直接领掉</text>
+
+    <rect x="550" y="392" width="466" height="176" rx="18" fill="#1c1f27"/>
+    <text x="582" y="440" fill="#8b929e" font-size="21">9 天后作废的积分</text>
+    <text x="582" y="502" fill="#FFC72C" font-size="52" font-weight="700">240</text>
+    <text x="582" y="542" fill="#8b929e" font-size="19">约值¥8.1，会清零</text>
+
+    <text x="64" y="656" fill="#ffffff" font-size="30" font-weight="700">它替你算清了三件事</text>
+
+    <rect x="64" y="692" width="952" height="132" rx="16" fill="#1c1f27"/>
+    <circle cx="118" cy="746" r="26" fill="#DA291C"/>
+    <text x="118" y="754" fill="#ffffff" font-size="24" font-weight="700" text-anchor="middle">1</text>
+    <text x="168" y="738" fill="#ffffff" font-size="25" font-weight="500">1 积分到底能换几毛钱</text>
+    <text x="168" y="784" fill="#8b929e" font-size="21">从 50 件在架商品反推真实汇率，不信商家的划线价</text>
+
+    <rect x="64" y="844" width="952" height="132" rx="16" fill="#1c1f27"/>
+    <circle cx="118" cy="898" r="26" fill="#DA291C"/>
+    <text x="118" y="906" fill="#ffffff" font-size="24" font-weight="700" text-anchor="middle">2</text>
+    <text x="168" y="890" fill="#ffffff" font-size="25" font-weight="500">抽一次奖的期望值是多少</text>
+    <text x="168" y="936" fill="#8b929e" font-size="21">算方差、算颗粒无收概率，官方不公布概率就明说不知道</text>
+
+    <rect x="64" y="996" width="952" height="132" rx="16" fill="#1c1f27"/>
+    <circle cx="118" cy="1050" r="26" fill="#DA291C"/>
+    <text x="118" y="1058" fill="#ffffff" font-size="24" font-weight="700" text-anchor="middle">3</text>
+    <text x="168" y="1042" fill="#ffffff" font-size="25" font-weight="500">该抽还是该换</text>
+    <text x="168" y="1088" fill="#8b929e" font-size="21">到期就抽，长期就换 —— 附可解释的量化判断依据</text>
+
+    <rect x="64" y="1164" width="952" height="96" rx="16" fill="#FFC72C"/>
+    <text x="540" y="1204" fill="#12141a" font-size="26" font-weight="700" text-anchor="middle">核心结论：机会成本为零的积分，就该拿去抽奖</text>
+    <text x="540" y="1240" fill="#4a3c10" font-size="21" text-anchor="middle">抽奖每积分期望 0.3491 元 ＝ 兑换汇率 0.0338 元的 10.3 倍</text>
+
+    <text x="64" y="1330" fill="#8b929e" font-size="22">基于麦当劳官方 MCP 真实接口 · 全程只读，不下单不领券</text>
+    <text x="64" y="1372" fill="#c9ced8" font-size="24" font-weight="500">github.com/mjcocw/mcd-points-steward</text>
+  </g>
+</svg>
