@@ -3,28 +3,277 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>麦麦积分资产体检报告 · McPoints Steward</title>
+<title>麦麦积分资产管家 · 三步看见你被浪费的积分</title>
+<meta name="description" content="基于麦当劳官方 MCP 的积分资产体检工具：算出积分真实价值、到期预警、抽奖期望值，告诉你该抽还是该换。全程只读，不下单不领券。">
 <style>
-:root{--ink:#1a1a1a;--sub:#6b6b6b;--line:rgba(0,0,0,.10);--bg:#f7f6f3;--red:#DA291C;--gold:#FFC72C}
+:root{--ink:#1a1a1a;--sub:#6b6b6b;--line:rgba(0,0,0,.10);--bg:#f7f6f3;--card:#fff;
+--red:#D8382F;--amber:#E8890C;--green:#1D9E75;--blue:#185FA5;--dark:#12141a}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.6}
-.bar{position:sticky;top:0;z-index:10;background:#12141a;color:#fff;display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap;border-bottom:3px solid var(--red)}
-.bar b{font-weight:500;font-size:15px}
-.bar span{font-size:12.5px;color:#9aa1ad}
-.bar code{background:#1c1f27;border:1px solid #2a2e37;border-radius:5px;padding:2px 7px;font-size:12px;color:#e8eaed;font-family:Menlo,Consolas,monospace}
-.bar a{color:var(--gold);text-decoration:none;font-size:12.5px;border:1px solid #3a3f4a;border-radius:6px;padding:3px 10px}
-.bar a:hover{border-color:var(--gold)}
-.frame{height:calc(100vh - 53px);width:100%;border:0;display:block;background:var(--bg)}
-@media (max-width:720px){.bar code{display:none}.frame{height:calc(100vh - 96px)}}
+body{background:var(--bg);color:var(--ink);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px}
+
+/* 首屏 */
+.hero{background:var(--dark);color:#fff;padding:52px 0 44px;border-bottom:4px solid var(--red);position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:0;top:0;width:100%;height:3px;background:var(--gold,#FFC72C)}
+.pill{display:inline-block;font-size:12px;padding:4px 12px;border-radius:999px;background:var(--red);color:#fff;margin-bottom:18px}
+.hero h1{font-size:34px;font-weight:500;letter-spacing:-.5px;line-height:1.3}
+.hero .en{font-size:16px;color:#FFC72C;font-family:Menlo,Consolas,monospace;margin-top:8px}
+.pain{margin-top:24px;background:#2a1416;border:1px solid var(--red);border-radius:14px;padding:20px 22px}
+.pain .k{font-size:13px;color:#FF8A80;margin-bottom:6px}
+.pain .v{font-size:23px;font-weight:500;line-height:1.45}
+.pain .n{font-size:13.5px;color:#c9ced8;margin-top:8px}
+.cta{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;font-size:15px;font-weight:500;padding:12px 22px;border-radius:10px;text-decoration:none;border:1px solid transparent;transition:.15s}
+.btn.p{background:var(--red);color:#fff}
+.btn.p:hover{background:#b82e26}
+.btn.s{background:transparent;color:#fff;border-color:#3a3f4a}
+.btn.s:hover{border-color:#FFC72C;color:#FFC72C}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:30px}
+.st{background:#1c1f27;border-radius:11px;padding:13px 15px}
+.st .k{font-size:12px;color:#9aa1ad}
+.st .v{font-size:22px;font-weight:500;margin-top:2px}
+
+/* 区块 */
+section{padding:44px 0}
+h2.sec{font-size:21px;font-weight:500;margin-bottom:6px;display:flex;align-items:center;gap:9px}
+h2.sec::before{content:"";width:4px;height:19px;background:var(--red);border-radius:2px}
+.lead{font-size:14.5px;color:var(--sub);margin-bottom:22px;max-width:660px}
+
+/* 三步 */
+.steps3{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.s3{background:var(--card);border:.5px solid var(--line);border-radius:14px;padding:20px 20px;position:relative}
+.s3 .n{position:absolute;top:16px;right:18px;font-size:26px;font-weight:500;color:#EEECEA;line-height:1}
+.s3 h3{font-size:15.5px;font-weight:500;margin-bottom:8px}
+.s3 p{font-size:13.5px;color:var(--sub)}
+pre{background:var(--dark);color:#e8eaed;border-radius:11px;padding:13px 15px;font-size:12.5px;font-family:Menlo,Consolas,monospace;overflow-x:auto;margin-top:12px;line-height:1.65}
+pre .c{color:#9aa1ad}
+pre .r{color:#FF8A80}
+pre .g{color:#FFC72C}
+pre .gr{color:#5DCAA5}
+.s3 a{display:inline-block;margin-top:12px;font-size:13px;color:var(--red);text-decoration:none;border-bottom:1px solid rgba(216,56,47,.3)}
+
+/* 收益 */
+.gains{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.g{background:var(--card);border:.5px solid var(--line);border-radius:14px;padding:19px 20px}
+.g .big{font-size:31px;font-weight:500;letter-spacing:-1px;color:var(--red)}
+.g .lb{font-size:13px;color:var(--sub);margin-top:2px}
+.g .ds{font-size:13px;color:var(--sub);margin-top:9px;border-top:.5px solid var(--line);padding-top:9px}
+
+/* 实时报告 */
+.live{background:var(--card);border:.5px solid var(--line);border-radius:16px;overflow:hidden}
+.live .top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;border-bottom:.5px solid var(--line);flex-wrap:wrap}
+.live .top b{font-weight:500;font-size:15px}
+.live .top .tag{font-size:12px;padding:3px 10px;border-radius:999px;background:#FEF3E2;color:var(--amber)}
+.live iframe{width:100%;height:640px;border:0;display:block}
+.livehint{font-size:12.5px;color:var(--sub);padding:11px 20px;background:#FCFCFB;border-top:.5px solid var(--line)}
+.livehint a{color:var(--red)}
+
+/* 坑位 */
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--card);border:.5px solid var(--line);border-radius:14px;overflow:hidden}
+th{text-align:left;font-weight:500;color:var(--sub);font-size:12.5px;padding:12px 14px;border-bottom:.5px solid var(--line);background:#FCFCFB}
+td{padding:12px 14px;border-bottom:.5px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td code,li code,.ic{font-family:Menlo,Consolas,monospace;font-size:12px;background:#F2F1EE;padding:1px 5px;border-radius:4px}
+
+/* 安全 */
+.safe{background:var(--dark);color:#fff;border-radius:16px;padding:26px 28px}
+.safe h3{font-size:16px;font-weight:500;margin-bottom:14px}
+.safe ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:11px}
+.safe li{font-size:13.5px;color:#c9ced8;padding-left:24px;position:relative}
+.safe li::before{content:"✓";position:absolute;left:0;color:#5DCAA5;font-weight:500}
+.safe li b{color:#fff;font-weight:500}
+
+/* 页脚 */
+footer{background:var(--dark);color:#9aa1ad;border-top:4px solid var(--red);padding:30px 0;font-size:13px}
+footer .lnk{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+footer a{color:#FFC72C;text-decoration:none}
+footer p{line-height:1.8}
+@media (max-width:640px){.hero h1{font-size:26px}.pain .v{font-size:19px}.live iframe{height:520px}}
 </style>
 </head>
 <body>
-<div class="bar">
-  <b>🍔 麦麦积分资产体检报告</b>
-  <span>McPoints Steward · 基于麦当劳官方 MCP Server · 离线演示数据</span>
-  <code>python main.py --mock --html demo/report.html</code>
-  <a href="https://github.com/M-China/mcd-developer-innovation-challenge" target="_blank" rel="noopener">1024 程序员节参赛作品</a>
+
+<div class="hero">
+  <div class="wrap">
+    <span class="pill">1024 程序员节 · 麦当劳 MCP 创意开发大赛参赛作品</span>
+    <h1>麦麦积分资产管家</h1>
+    <div class="en">McPoints Steward</div>
+
+    <div class="pain">
+      <div class="k">跑完第一步，它会先告诉你这件事：</div>
+      <div class="v">你的积分早就过期了，<br>而麦当劳没有提醒过你。</div>
+      <div class="n">这不是 bug，是你从来没算过这笔账。</div>
+    </div>
+
+    <div class="cta">
+      <a class="btn p" href="#three">↓ 三步看见效果</a>
+      <a class="btn s" href="./report.html" target="_blank" rel="noopener">直接打开体检报告</a>
+      <a class="btn s" href="https://github.com/mjcocw/mcd-points-steward" target="_blank" rel="noopener">GitHub 源码</a>
+    </div>
+
+    <div class="stats">
+      <div class="st"><div class="k">已对接真实 MCP</div><div class="v">35 Tool</div></div>
+      <div class="st"><div class="k">只读接口</div><div class="v">8 个</div></div>
+      <div class="st"><div class="k">第三方依赖</div><div class="v">0</div></div>
+      <div class="st"><div class="k">自检覆盖</div><div class="v">40 项</div></div>
+    </div>
+  </div>
 </div>
-<iframe class="frame" src="./report.html" title="麦麦积分资产体检报告"></iframe>
+
+<section id="three">
+  <div class="wrap">
+    <h2 class="sec">三步看见效果</h2>
+    <p class="lead">不用装环境、不用申请 Token、不用连麦当劳账号。下面每一步都能立刻看到结果。</p>
+
+    <div class="steps3">
+      <div class="s3">
+        <div class="n">1</div>
+        <h3>看它算出了什么</h3>
+        <p>打开下面这份完整体检报告 —— 资产总览、到期倒计时、三条路线量化对比、兑换清单，全都在里面。这一页<b>无需任何准备</b>。</p>
+        <a href="./report.html" target="_blank" rel="noopener">打开报告 →</a>
+      </div>
+
+      <div class="s3">
+        <div class="n">2</div>
+        <h3>自己跑一遍</h3>
+        <p>三条命令，输出你真实的积分体检报告。离线演示数据与真实接口字段完全一致。</p>
+<pre><span class="c"># 1. 克隆</span>
+git clone https://github.com/mjcocw/mcd-points-steward.git
+<span class="c"># 2. 跑（无需 Token）</span>
+cd mcd-points-steward && python main.py
+<span class="c"># 3. 生成 HTML 报告</span>
+python main.py --mock --html report.html</pre>
+        <a href="https://github.com/mjcocw/mcd-points-steward" target="_blank" rel="noopener">看完整说明 →</a>
+      </div>
+
+      <div class="s3">
+        <div class="n">3</div>
+        <h3>查你自己的真账户</h3>
+        <p>配置麦当劳 MCP 连接器后加 <code>--live</code>，即可生成属于你自己的报告。只读，不下单不领券。</p>
+<pre><span class="c"># 先在 WorkBuddy 配置 mcd-mcp 连接器</span>
+python main.py --live --html mine.html
+<span class="gr">→ 你的真实积分，到期天数，个性化建议</span></pre>
+        <a href="https://github.com/M-China/mcd-mcp-server" target="_blank" rel="noopener">MCP 配置指南 →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--card);border-top:.5px solid var(--line);border-bottom:.5px solid var(--line)">
+  <div class="wrap">
+    <h2 class="sec">它到底能省出多少</h2>
+    <p class="lead">下面不是宣传话术，是用演示数据跑出来的真实输出。换成你自己的账户，数字会变，但算法一样。</p>
+    <div class="gains">
+      <div class="g">
+        <div class="big">¥117</div>
+        <div class="lb">零成本收益</div>
+        <div class="ds">卡包里躺着没领、没用的优惠券和可领券 — 不用花额外代价，直接兑现。</div>
+      </div>
+      <div class="g">
+        <div class="big">¥8.4</div>
+        <div class="lb">抽奖单次期望值</div>
+        <div class="ds">每次 24 积分。官方<b>不公布中奖概率</b>，本工具按等概率假设计算并明确标注这是<b>上界、会高估</b>。</div>
+      </div>
+      <div class="g">
+        <div class="big">10.3×</div>
+        <div class="lb">抽奖汇率 / 兑换汇率</div>
+        <div class="ds">这是全项目最有价值的一个结论：<b>机会成本为零的积分，就该拿去抽奖</b>；长期不用的，才值得换确定性商品。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="sec">完整体检报告长什么样</h2>
+    <p class="lead">下面是完整的离线演示报告，零外部依赖、单文件、可直接截图发群。</p>
+    <div class="live">
+      <div class="top">
+        <b>🍔 麦麦积分资产体检报告</b>
+        <span class="tag">离线演示数据 · 字段与真实接口一致</span>
+      </div>
+      <iframe src="./report.html" title="麦麦积分资产体检报告" loading="lazy"></iframe>
+      <div class="livehint">👆 这份报告由程序生成，不是手写网页。&nbsp;·&nbsp;
+        <a href="./report.html" target="_blank" rel="noopener">新窗口打开完整版 →</a></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--card);border-top:.5px solid var(--line);border-bottom:.5px solid var(--line)">
+  <div class="wrap">
+    <h2 class="sec">我对接真实接口时踩到的五个坑</h2>
+    <p class="lead">这个项目最有价值的部分不是代码，是把麦当劳官方 MCP 的真实行为摸清楚了。以下每一条都是实测出来的。</p>
+    <table>
+      <tr><th style="width:24%">坑</th><th style="width:38%">真实表现</th><th>本项目的处理</th></tr>
+      <tr>
+        <td><b>价格藏在名字里</b></td>
+        <td><code>mall-points-products</code> 的 <code>price</code> 字段对商品券<b>恒为 0</b>，真实面值在 <code>spuName</code> 里</td>
+        <td>从名称反推面值，推不出来就标「无法估值」，绝不编一个数</td>
+      </tr>
+      <tr>
+        <td><b>一半商品已下架</b></td>
+        <td>实测 50 件里 43 件不可用：<code>downTime</code> 已过，或 <code>point=0</code> 的派对/读书会</td>
+        <td>按 <code>downTime</code> 过滤 + 排除非兑换物，<b>绝不让用户去换已经下架的东西</b></td>
+      </tr>
+      <tr>
+        <td><b>抽奖不公布概率</b></td>
+        <td><code>query-lottery-info</code> 只给奖品名单，既没有中奖概率，也没有面值</td>
+        <td>等概率假设 + 明确标注是上界，同时给出方差与「颗粒无收概率<b>未知</b>」</td>
+      </tr>
+      <tr>
+        <td><b>官方把Month 拼成了 Mouth</b></td>
+        <td>账户字段是 <code>currentMouthExpirePoint</code></td>
+        <td>别名表同时收两种拼写，官方改名不会让项目崩</td>
+      </tr>
+      <tr>
+        <td><b>业务错误不抛异常</b></td>
+        <td>参数错时返回 <code>{"success":false,...}</code>，HTTP仍是 200</td>
+        <td>专门的 <code>business_error()</code> 识别，写进报告而不是当成「没查到数据」</td>
+      </tr>
+    </table>
+    <p class="lead" style="margin-top:14px">外加一个纯工程坑：<code>urllib</code> 每次请求都新建 TLS 握手，在企业代理 / WAF 环境下会被中间设备掐断（<code>SSLEOFError</code>）。所以客户端改成了<b>持久化 keep-alive + 自动重连重试</b>，并支持 <code>https_proxy</code> CONNECT 隧道。</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="sec">安全边界</h2>
+    <div class="safe" style="margin-top:14px">
+      <h3>这个工具不做什么，和它做什么一样重要</h3>
+      <ul>
+        <li><b>不下单、不付款、不领券</b> —— 全程只读，唯一会动账户的是你自己手动点那一下</li>
+        <li><b>不碰你的 Token</b> —— 只从环境变量读取，绝不写进代码或仓库</li>
+        <li><b>不做消费建议</b> —— 所有估值是估算，餐品信息以官方渠道实时结果为准</li>
+        <li><b>不编造数据</b> —— 抽奖概率官方没公布就写「未知」，绝不显示成0%</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--card);border-top:.5px solid var(--line)">
+  <div class="wrap" style="text-align:center;padding:40px 20px">
+    <h2 class="sec" style="justify-content:center">觉得有用的话，点个 Star</h2>
+    <p class="lead" style="margin:8px auto 22px">排名完全依据公开 Star 数。如果它帮你算清了那笔账，这颗 Star 就是最有价值的反馈。</p>
+    <div class="cta" style="justify-content:center">
+      <a class="btn p" href="https://github.com/mjcocw/mcd-points-steward" target="_blank" rel="noopener">⭐ GitHub 点 Star</a>
+      <a class="btn s" href="https://github.com/mjcocw/mcd-points-steward/blob/main/docs/devlog.md" target="_blank" rel="noopener">读开发实录全文</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="lnk">
+      <a href="https://github.com/mjcocw/mcd-points-steward" target="_blank" rel="noopener">GitHub 源码</a>
+      <a href="https://github.com/mjcocw/mcd-points-steward/blob/main/docs/devlog.md" target="_blank" rel="noopener">开发实录</a>
+      <a href="https://github.com/M-China/mcd-developer-innovation-challenge" target="_blank" rel="noopener">赛事仓库</a>
+      <a href="https://github.com/M-China/mcd-mcp-server" target="_blank" rel="noopener">MCP 指南</a>
+    </div>
+    <p>McPoints Steward · 基于麦当劳官方 MCP Server 开发，为个人消费决策参考，不构成任何官方承诺。<br>餐品信息、价格与供应状态以麦当劳官方渠道实时结果为准。本项目非麦当劳官方产品。</p>
+  </div>
+</footer>
+
 </body>
 </html>
