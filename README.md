@@ -2,7 +2,7 @@
 
 <img src="assets/hero.svg" alt="麦麦积分资产管家 McPoints Steward" width="100%">
 
-**🍔 在线体验：打开就能看效果，不用 clone** → **[点我](https://mc-points-steward.pages.dev/)** ｜
+**🍔 在线体验：打开就能看效果，不用 clone** → **[点我](https://mojc.github.io/mcd-points-steward/)** ｜
 **📖 [开发实录全文](docs/devlog.md)** ｜ **📣 [传播文案包](docs/promotion.md)**
 
 </div>
@@ -183,7 +183,7 @@ python main.py --mock --html demo/report.html
 ### 三行命令跑起来（**不需要任何 Token**）
 
 ```bash
-git clone https://github.com/<你的用户名>/mcd-points-steward.git
+git clone https://github.com/mojc/mcd-points-steward.git
 cd mcd-points-steward
 python main.py --mock --html demo/report.html
 ```
@@ -379,7 +379,7 @@ Issue 标题：我的参赛项目名
 Issue 正文：
 【参赛申请】
 项目名称：XXX
-项目地址：https://github.com/<你的用户名>/mcd-points-steward
+项目地址：https://github.com/mojc/mcd-points-steward
 项目简介：一句话说明它解决了什么问题
 ```
 

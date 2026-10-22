@@ -216,7 +216,7 @@ catName 分布: 到店专用 21, 主题类派对 13, 品鉴会 7, 生日类派�
 **不需要任何 Token**（评审者 clone 下来 10 秒就能看到完整效果）：
 
 ```bash
-git clone https://github.com/<你的用户名>/mcd-points-steward.git
+git clone https://github.com/mojc/mcd-points-steward.git
 cd mcd-points-steward
 python main.py --mock --html demo/report.html
 ```
@@ -258,7 +258,7 @@ python main.py --live --city 上海 --html my-report.html
 
 ---
 
-**项目地址**：https://github.com/<你的用户名>/mcd-points-steward
+**项目地址**：https://github.com/mojc/mcd-points-steward
 **在线演示**：见 README
 **联系方式**：GitHub Issue
 
