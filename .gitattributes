@@ -1,0 +1,5 @@
+# 统一换行符，避免 Windows / macOS / Linux 混编时产生无意义的 diff
+* text=auto eol=lf
+*.html text eol=lf
+*.py text eol=lf
+*.md text eol=lf
