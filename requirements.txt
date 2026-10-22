@@ -1,0 +1,2 @@
+# 本项目零第三方依赖，仅使用 Python 3.9+ 标准库。
+# requirements.txt 保留为空以方便他人一键安装（pip install -r requirements.txt 不会报错）。
