@@ -98,6 +98,8 @@ def main(argv: Any = None) -> int:
     parser.add_argument("--json", dest="json_out", default=None, help="把结构化结果写到指定路径")
     parser.add_argument("--quiet", action="store_true", help="不打印终端报告")
     parser.add_argument("--horizon", type=int, default=30, help="到期高危窗口天数，默认 30")
+    parser.add_argument("--city", default="", help="所在城市（用于解析门店菜单价格），也可用环境变量 MCD_CITY")
+    parser.add_argument("--keyword", default="麦当劳", help="门店搜索关键词，默认「麦当劳」")
     args = parser.parse_args(argv)
 
     mode = args.mode
@@ -107,7 +109,7 @@ def main(argv: Any = None) -> int:
         mode = "live"
 
     try:
-        source = build_source(mode, args.token)
+        source = build_source(mode, args.token, city=args.city, keyword=args.keyword)
         snapshot = source.collect()
     except McpError as exc:
         print(f"[错误] {exc}", file=sys.stderr)

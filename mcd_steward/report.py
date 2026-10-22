@@ -50,6 +50,9 @@ def render_terminal(plan: Plan, snapshot: McSnapshot, width: int = 68) -> str:
         if a.kind == "points":
             L.append(f"  ⚠ 积分 {a.points:>6,} 份  {a.days_left:>3} 天后过期"
                      f"   约值 {a.value_cny:.1f} 元")
+        elif a.kind == "expired":
+            L.append(f"  ✖ 积分 {a.points:>6,} 份  已经过期"
+                     f"   约值 {a.value_cny:.1f} 元   —— 无法挽回")
         else:
             L.append(f"  ⚠ 优惠券 {a.label[:18]:<18} {a.days_left:>3} 天后过期"
                      f"   约值 {a.value_cny:.1f} 元")
@@ -79,12 +82,13 @@ def render_terminal(plan: Plan, snapshot: McSnapshot, width: int = 68) -> str:
 
     if plan.lottery.available:
         L.append("【抽奖期望值拆解】")
-        L.append(f"  活动：{plan.lottery.name}")
+        L.append(f"  活动：{plan.lottery.name}   概率来源：{plan.lottery.probability_source}")
         for line in plan.lottery.lines:
             L.append(line)
+        lose_txt = (f"颗粒无收概率 {plan.lottery.lose_prob * 100:.0f}%"
+                    if plan.lottery.lose_prob > 0 else "颗粒无收概率 未知（官方未公布概率）")
         L.append(f"  单次期望 {plan.lottery.per_draw_cny:.2f} 元"
-                 f"   标准差 {plan.lottery.stdev_cny:.2f} 元"
-                 f"   颗粒无收概率 {plan.lottery.lose_prob * 100:.0f}%")
+                 f"   标准差 {plan.lottery.stdev_cny:.2f} 元   {lose_txt}")
         if plan.lottery.warning:
             L.append(f"  ! {plan.lottery.warning}")
         L.append("")
@@ -148,6 +152,8 @@ tr.pick td{background:#FFF8F2}
 .alert{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border-radius:10px;
 background:#FDECEA;border:.5px solid rgba(216,56,47,.18);margin-bottom:9px}
 .alert.warn{background:#FEF3E2;border-color:rgba(232,137,12,.22)}
+.alert.gone{background:#F2F1EE;border-color:rgba(0,0,0,.10)}
+.alert.gone .n{color:var(--sub)}
 .alert .t{font-size:13px;flex:1}
 .alert .t b{font-weight:500}
 .alert .d{font-size:12px;color:var(--sub);margin-top:2px}
@@ -217,6 +223,10 @@ def render_html(plan: Plan, snapshot: McSnapshot) -> str:
             A(f"<div class=\"alert {cls}\"><div class=\"t\"><b>{_e(a.label or '即将过期积分')}</b>"
               f"<div class=\"d\">约值 {a.value_cny:.1f} 元 · 建议优先用掉</div></div>"
               f"<div class=\"n\">{a.days_left} 天</div></div>")
+        elif a.kind == "expired":
+            A(f"<div class=\"alert gone\"><div class=\"t\"><b>已过期积分 {_e(a.label)}</b>"
+              f"<div class=\"d\">约值 {a.value_cny:.1f} 元 · {_e(a.action or '无法挽回')}</div></div>"
+              f"<div class=\"n\">已失效</div></div>")
         else:
             cls = "warn" if a.days_left > 7 else ""
             A(f"<div class=\"alert {cls}\"><div class=\"t\"><b>{_e(a.label)}</b>"
@@ -229,7 +239,12 @@ def render_html(plan: Plan, snapshot: McSnapshot) -> str:
     A("<tr><th>路线</th><th>期望值</th><th>最差情况</th><th>积分用掉</th><th>颗粒无收</th></tr>")
     for r in plan.routes:
         pick = plan.recommended is not None and r.key == plan.recommended.key
-        lose = f"{r.all_lose_prob * 100:.0f}%" if r.draws > 0 else "—"
+        if r.draws > 0 and plan.lottery.lose_prob <= 0:
+            lose = "未知"
+        elif r.draws > 0:
+            lose = f"{r.all_lose_prob * 100:.0f}%"
+        else:
+            lose = "—"
         badge = " <span class=\"pill p-red\">推荐</span>" if pick else ""
         A(f"<tr class=\"{'pick' if pick else ''}\"><td>{_e(r.title)}{badge}</td>"
           f"<td><b>{r.expected_cny:.1f} 元</b></td>"
@@ -258,7 +273,8 @@ def render_html(plan: Plan, snapshot: McSnapshot) -> str:
     if plan.lottery.available:
         A("<div class=\"card\"><h2>抽奖期望值拆解</h2>")
         A(f"<div class=\"sub\" style=\"margin-bottom:10px\">{_e(plan.lottery.name)} · "
-          f"每次消耗 {plan.lottery.cost_points} 积分</div>")
+          f"每次消耗 {plan.lottery.cost_points} 积分 · "
+          f"概率来源：{_e(plan.lottery.probability_source)}</div>")
         max_p = max((p.probability or 0) for p in snapshot.lottery.prizes) if snapshot.lottery else 1
         for line, prize in zip(plan.lottery.lines, snapshot.lottery.prizes if snapshot.lottery else []):
             p = prize.probability or 0
@@ -267,9 +283,10 @@ def render_html(plan: Plan, snapshot: McSnapshot) -> str:
             A(f"<div class=\"lot\"><span>{_e(left.strip())}<div class=\"bar\">"
               f"<i style=\"width:{w}%\"></i></div></span>"
               f"<span class=\"r\">贡献{_e(right.strip())}</span></div>")
+        lose_txt = (f"颗粒无收概率 {plan.lottery.lose_prob * 100:.0f}%"
+                    if plan.lottery.lose_prob > 0 else "颗粒无收概率未知（官方未公布概率）")
         A(f"<div class=\"note\">单次期望 <b>{plan.lottery.per_draw_cny:.2f} 元</b> · "
-          f"标准差 {plan.lottery.stdev_cny:.2f} 元 · "
-          f"单次颗粒无收概率 {plan.lottery.lose_prob * 100:.0f}% · "
+          f"标准差 {plan.lottery.stdev_cny:.2f} 元 · {lose_txt} · "
           f"最高奖 {plan.lottery.best_prize} 概率 {plan.lottery.best_prize_prob * 100:.1f}%</div>")
         A("</div>")
 

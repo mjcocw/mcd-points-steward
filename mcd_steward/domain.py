@@ -1,11 +1,41 @@
-"""数据模型：把 MCP 返回的原始 JSON 归一化成可计算的结构。
+"""数据模型：把麦当劳 MCP Server 的真实返回结构归一化成可计算的对象。
+
+真实结构备忘（2026-10 实测，open.mcd.cn/mcp）
+--------------------------------------------
+``query-my-account``
+    {"availablePoint":"1240","accumulativePoint":"5860","frozenPoint":"0",
+     "usedPoint":"0","expiredPoint":"143.3",
+     "currentMouthExpirePoint":"240","nextMouthExpirePoint":"100", ...}
+    ⚠ 官方把 Month 拼成了 **Mouth**（currentMouthExpirePoint / nextMouthExpirePoint），
+      别名表里必须同时收这两种写法。
+
+``query-my-coupons``
+    {"coupons":[...],"totalCount":0,"currentPage":1,"pageSize":200,"totalPages":0}
+
+``available-coupons``
+    [{"couponName":"11.9元麦辣鸡腿堡","couponImage":"...","couponStatus":"CAN_GET","label":"可领取"}]
+
+``mall-points-products``
+    [{"spuName":"21.9元巨无霸可乐组合","spuId":1234,"point":"800","price":"0",
+      "catName":"到店专用","status":2,"upTime":"...","downTime":"2026-12-30 23:59:59"}]
+    ⚠ ``price`` 对商品券恒为 0，**真实面值藏在 spuName 里**（"21.9元…"）；
+      ⚠ ``downTime`` 早于当前时间的商品已下架，必须过滤，否则会推荐买不到的东西；
+      ⚠ ``point`` 为 0 的是派对/读书会等体验类，不是积分兑换物。
+
+``query-lottery-info``
+    {"activityName":"麦麦积分抽奖","drawPoint":"24","availablePoint":"1240",
+     "drawDecision":{"resourceEligible":true,"reason":"","nextConsumption":{...}},
+     "prizes":[{"name":"下单立减3元券","typeText":"优惠券","imageUrl":"..."}]}
+    ⚠ 奖品**不返回中奖概率，也不返回面值** —— 概率只能等分假设并明确标注，
+      面值必须从奖品名里解析。
+
+``query-meals``  需要 storeCode + beType + orderType，必须先经
+``query-nearby-stores`` 拿到门店。
 
 设计原则
 --------
-1. 官方接口字段名可能随版本变动，因此每一处解析都走 ``_pick``（多候选键名 + 别名），
-   单一字段改名不会让整个项目崩掉。
-2. 解析失败的项不会静默丢弃，而是进入 ``unparsed`` 计数并在报告里提示，
-   避免"看起来算得很准其实漏了一半数据"。
+1. 每一处解析都走 ``_alias``（多候选键名 + 别名表），官方字段改名不会让项目崩掉。
+2. 解析失败的项不会被静默丢弃，而是计数并在报告里提示。
 3. 所有金额一律用「元」的 float 表达，积分数一律用 int。
 """
 
@@ -13,64 +43,68 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence
+
+_ONE_DAY = timedelta(days=1)
 
 # --------------------------------------------------------------------------- #
 # 通用工具
 # --------------------------------------------------------------------------- #
 
-# 常见的字段别名，键为标准名，值为候选键名（小驼峰 / 下划线 / 中文）
+#: 候选键名表：标准名 -> 候选键名（小驼峰 / 下划线 / 中文）
 _ALIASES: Dict[str, Sequence[str]] = {
-    "id": ("id", "couponId", "coupon_id", "productId", "product_id", "prizeId", "recordId"),
-    "name": ("name", "title", "couponName", "productName", "prizeName", "goodsName", "desc", "description"),
-    "points": ("points", "point", "pointPrice", "point_price", "costPoints", "cost_points",
-               "积分", "积分价格", "needPoints", "exchangePoints"),
-    "cash": ("cash", "cashPrice", "cash_price", "price", "amount", "money", "originalPrice",
+    "id": ("id", "couponId", "coupon_id", "spuId", "spu_id", "productId", "product_id",
+           "prizeId", "recordId", "code"),
+    "name": ("name", "title", "couponName", "spuName", "productName", "prizeName",
+             "goodsName", "activityName", "desc", "description"),
+    "points": ("point", "points", "pointPrice", "point_price", "costPoints", "cost_points",
+               "drawPoint", "积分", "积分价格", "needPoints", "exchangePoints"),
+    "cash": ("price", "cash", "cashPrice", "cash_price", "amount", "money", "originalPrice",
              "售价", "现金价", "marketPrice"),
     "stock": ("stock", "quantity", "remain", "inventory", "total", "totalStock", "剩余库存"),
-    "expire": ("expireDate", "expire_date", "expireTime", "expire", "validUntil", "endTime",
-               "end_date", "有效期", "过期时间", "expireAt"),
-    "effective": ("effectiveDate", "effective_date", "startTime", "startTime", "beginTime", "生效时间"),
-    "value": ("value", "valueCny", "value_cny", "faceValue", "face_value", "amount", "面值", "金额"),
-    "points_amount": ("points", "point", "pointAmount", "point_amount", "expirePoints",
-                      "积分", "积分数", "积分数量", "即将过期积分"),
+    "expire": ("downTime", "expireDate", "expire_date", "expireTime", "expire", "validUntil",
+               "endTime", "end_date", "有效期", "过期时间", "expireAt", "endDate"),
+    "effective": ("upTime", "effectiveDate", "effective_date", "startTime", "beginTime", "生效时间"),
+    "value": ("value", "valueCny", "value_cny", "faceValue", "face_value", "面值", "金额"),
     "probability": ("probability", "prob", "rate", "chance", "odds", "中奖概率", "概率"),
     "weight": ("weight", "stockWeight", "w"),
-    "cost": ("cost", "costPoints", "cost_points", "consumePoints", "consume", "消耗积分", "每次消耗"),
+    "cost": ("drawPoint", "cost", "costPoints", "cost_points", "consumePoints", "consume",
+             "消耗积分", "每次消耗"),
     "prizes": ("prizes", "prizeList", "awardList", "prize_list", "奖品列表", "奖品", "awards"),
-    "rules": ("rules", "rule", "description", "desc", "说明", "consumeRule", "消耗规则"),
-    "category": ("category", "cat", "type", "分类", "类目"),
-    "stock_total": ("totalStock", "total_stock", "poolSize", "pool_size", "奖池总量"),
-    "items": ("items", "list", "records", "rows", "data", "content", "列表", "明细"),
-    "available": ("available", "usable", "current", "可用积分", "可用"),
-    "total_earned": ("totalEarned", "total_earned", "accumulated", "累计积分", "累计"),
-    "frozen": ("frozen", "locked", "冻结积分", "冻结"),
-    "expiring": ("expiring", "expiringPoints", "expiring_points", "expireSoon", "即将过期积分",
-                 "expired", "willExpire", "expiringPointsDetail", "expiring_detail"),
-    "used": ("used", "usedPoints", "已使用积分", "已使用"),
-    "source": ("source", "type", "来源"),
-    "reason": ("reason", "desc", "remark", "说明"),
-    "action": ("action", "actionType", "type", "动作"),
+    "rules": ("drawTypeText", "rules", "rule", "description", "desc", "说明", "consumeRule",
+              "消耗规则"),
+    "category": ("catName", "category", "cat", "type", "分类", "类目"),
+    "items": ("coupons", "items", "list", "records", "rows", "data", "content", "列表", "明细",
+              "spuList", "productList"),
+    "available": ("availablePoint", "available", "usable", "current", "可用积分", "可用"),
+    "total_earned": ("accumulativePoint", "accumulative", "totalEarned", "total_earned",
+                     "accumulated", "累计积分", "累计"),
+    "frozen": ("frozenPoint", "frozen", "locked", "冻结积分", "冻结"),
+    "expired": ("expiredPoint", "expired", "已过期积分", "已过期"),
+    "used": ("usedPoint", "used", "usedPoints", "已使用积分", "已使用"),
+    "expiring": ("currentMouthExpirePoint", "nextMouthExpirePoint", "expiring",
+                 "expiringPoints", "expiring_points", "expireSoon", "即将过期积分",
+                 "willExpire", "expiringPointsDetail", "expiring_detail"),
+    "points_amount": ("point", "points", "pointAmount", "point_amount", "expirePoints",
+                      "积分", "积分数", "积分数量", "即将过期积分"),
+    "status": ("couponStatus", "status", "state"),
+    "label": ("label", "tag"),
 }
 
-
-def _pick(obj: Any, *keys: str, default: Any = None) -> Any:
-    """在 dict 中按顺序取第一个存在且非 None 的键。"""
-    if not isinstance(obj, dict):
-        return default
-    for k in keys:
-        if k in obj and obj[k] is not None:
-            return obj[k]
-    return default
+#: 从商品名里解析「21.9元」这类面值
+_RE_PRICE_IN_NAME = re.compile(r"(\d+(?:\.\d+)?)\s*元")
+#: 从商品名里解析「5折」「5.5折」
+_RE_DISCOUNT_IN_NAME = re.compile(r"(\d+(?:\.\d+)?)\s*折")
+#: 从商品名里解析「30积分」
+_RE_POINTS_IN_NAME = re.compile(r"(\d+(?:\.\d+)?)\s*积分")
 
 
 def _alias(obj: Any, name: str, default: Any = None) -> Any:
     """按 ``_ALIASES`` 别名表取值。"""
     if not isinstance(obj, dict):
         return default
-    candidates = _ALIASES.get(name, (name,))
-    for k in candidates:
+    for k in _ALIASES.get(name, (name,)):
         if k in obj and obj[k] is not None:
             return obj[k]
     return default
@@ -121,7 +155,7 @@ def _as_date(v: Any) -> Optional[date]:
     if not s:
         return None
     s = s.replace("年", "-").replace("月", "-").replace("日", "")
-    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d", "%Y/%m/%d",
                 "%Y%m%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
         try:
             return datetime.strptime(s[: len(fmt) + 6].strip(), fmt).date()
@@ -136,32 +170,73 @@ def _as_date(v: Any) -> Optional[date]:
     return None
 
 
+def business_error(payload: Any) -> Optional[str]:
+    """识别麦当劳接口的**业务错误**约定。
+
+    官方在业务失败时不是抛 MCP 错误，而是返回
+    ``{"success": false, "code": 600050, "message": "收藏餐厅列表为空…"}``。
+    不识别这种结构，就会把错误当成"查到了但没数据"，静默丢信息。
+    """
+    if isinstance(payload, dict) and payload.get("success") is False:
+        code = payload.get("code", "?")
+        msg = payload.get("message", "未知业务错误")
+        return f"[{code}] {msg}"
+    return None
+
+
 def _to_items(payload: Any) -> List[Dict[str, Any]]:
     """把 MCP 工具返回体规整成 list[dict]。
 
-    兼容三种形态：
-    - 直接是 list
-    - dict 且含 items/list/records/data 等列表键
-    - dict 本身被当作单条记录
+    兼容四种形态：直接 list / dict 含列表键 / dict 被包了一层 / 单条 dict。
     """
     if payload is None:
         return []
     if isinstance(payload, list):
         return [x for x in payload if isinstance(x, dict)]
     if isinstance(payload, dict):
-        for key in ("items", "list", "records", "rows", "data", "content", "result", "coupons",
-                    "products", "prizes", "orders", "listOfXXX", "value"):
+        for key in _ALIASES["items"]:
             v = payload.get(key)
             if isinstance(v, list):
                 return [x for x in v if isinstance(x, dict)]
             if isinstance(v, dict):
                 return _to_items(v)
-        # 只有一个 dict 值且是 dict，尝试下钻一层
         dict_vals = [v for v in payload.values() if isinstance(v, dict)]
         if len(dict_vals) == 1:
             return _to_items(dict_vals[0])
         return [payload]
     return []
+
+
+def price_from_name(name: str) -> float:
+    """从商品 / 券名里解析面值。
+
+    麦当劳商城与券的名称里带价格（"21.9元巨无霸可乐组合"、"下单立减3元券"），
+    而接口的 ``price`` 字段对商品券恒为 0 —— 所以价值只能从名字里取。
+    """
+    if not name:
+        return 0.0
+    m = _RE_PRICE_IN_NAME.search(name)
+    return float(m.group(1)) if m else 0.0
+
+
+def discount_from_name(name: str) -> float:
+    """从名称里解析折扣（"麦辣三件套5折券" → 0.5）。没有则返回 0。"""
+    if not name:
+        return 0.0
+    m = _RE_DISCOUNT_IN_NAME.search(name)
+    if m:
+        d = float(m.group(1))
+        if 0 < d <= 10:
+            return d / 10.0
+    return 0.0
+
+
+def points_from_name(name: str) -> float:
+    """从名称里解析积分数（"30积分" → 30.0）。"""
+    if not name:
+        return 0.0
+    m = _RE_POINTS_IN_NAME.search(name)
+    return float(m.group(1)) if m else 0.0
 
 
 # --------------------------------------------------------------------------- #
@@ -187,6 +262,8 @@ class PointsAccount:
     available: int = 0
     total_earned: int = 0
     frozen: int = 0
+    used: int = 0
+    expired: int = 0
     expiring: List[ExpiringBucket] = field(default_factory=list)
     raw: Dict[str, Any] = field(default_factory=dict)
 
@@ -224,9 +301,16 @@ class MallProduct:
     cash_price: float = 0.0
     stock: int = -1
     category: str = ""
+    valid_until: Optional[date] = None
     est_value_cny: float = 0.0
     value_reason: str = ""
     raw: Dict[str, Any] = field(default_factory=dict)
+
+    def is_on_sale(self, today: Optional[date] = None) -> bool:
+        """是否仍在架上。接口不返回库存，只返回上下架时间。"""
+        if self.valid_until is None:
+            return True
+        return self.valid_until >= (today or date.today())
 
 
 @dataclass
@@ -234,7 +318,7 @@ class LotteryPrize:
     """一个奖品。"""
     name: str
     value_cny: float = 0.0
-    probability: Optional[float] = None   # 0~1
+    probability: Optional[float] = None   # 0~1，官方不返回时为 None
     value_reason: str = ""
     raw: Dict[str, Any] = field(default_factory=dict)
 
@@ -246,6 +330,8 @@ class LotteryInfo:
     cost_points: int = 0
     prizes: List[LotteryPrize] = field(default_factory=list)
     rules: str = ""
+    eligible: Optional[bool] = None
+    ineligible_reason: str = ""
     raw: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -271,6 +357,7 @@ class McSnapshot:
     mall_products: List[MallProduct] = field(default_factory=list)
     lottery: Optional[LotteryInfo] = None
     menu: List[MealPrice] = field(default_factory=list)
+    store_name: str = ""
     unparsed: int = 0
     notes: List[str] = field(default_factory=list)
     is_mock: bool = False
@@ -281,46 +368,60 @@ class McSnapshot:
 
 
 # --------------------------------------------------------------------------- #
+# 日期辅助
+# --------------------------------------------------------------------------- #
+
+def month_end(today: Optional[date] = None) -> date:
+    """当月最后一天。"""
+    today = today or date.today()
+    if today.month == 12:
+        return date(today.year, 12, 31)
+    return date(today.year, today.month + 1, 1) - _ONE_DAY
+
+
+def month_end_next(today: Optional[date] = None) -> date:
+    """下月最后一天。"""
+    today = today or date.today()
+    return month_end(month_end(today) + _ONE_DAY)
+
+
+# --------------------------------------------------------------------------- #
 # 解析器
 # --------------------------------------------------------------------------- #
 
 def parse_account(payload: Any) -> PointsAccount:
-    """解析 ``query-my-account`` 的返回。"""
-    items = _to_items(payload)
-    acc = PointsAccount(raw=payload if isinstance(payload, dict) else {})
+    """解析 ``query-my-account``。
 
-    # 情况 A：顶层就是一个账户对象
-    if items and _alias(items[0], "available") is not None:
-        root = items[0]
-        acc.available = _as_int(_alias(root, "available"))
-        acc.total_earned = _as_int(_alias(root, "total_earned"))
-        acc.frozen = _as_int(_alias(root, "frozen"))
-        acc.raw = root
-        exp = _alias(root, "expiring")
-        if exp is not None:
-            acc.expiring = _parse_expiring(exp)
+    真实返回是一个扁平对象；``currentMouthExpirePoint`` / ``nextMouthExpirePoint``
+    分别是本月、下月即将过期的积分数（官方把 Month 拼成了 Mouth）。
+    """
+    acc = PointsAccount(raw=payload if isinstance(payload, dict) else {})
+    if not isinstance(payload, dict):
         return acc
 
-    # 情况 B：多个分片对象
-    for it in items:
-        name = str(_alias(it, "name", "") or "")
-        val = _as_int(_alias(it, "points_amount", default=None)
-                      if _alias(it, "points_amount") is not None
-                      else _alias(it, "available", default=None)
-                      if _alias(it, "available") is not None
-                      else _alias(it, "value"), default=0)
-        if any(k in name for k in ("可用", "available", "可用积分")):
-            acc.available = val
-        elif any(k in name for k in ("累计", "total", "累计积分")):
-            acc.total_earned = val
-        elif any(k in name for k in ("冻结", "frozen", "冻结积分")):
-            acc.frozen = val
-        elif any(k in name for k in ("即将过期", "expiring", "即将过期积分")):
-            acc.expiring = [ExpiringBucket(points=val, expire_date=None, label=name)]
-        elif any(k in name for k in ("已使用", "used")):
-            acc.used = val  # type: ignore[attr-defined]
-    if not acc.raw:
-        acc.raw = payload if isinstance(payload, dict) else {}
+    acc.available = _as_int(_alias(payload, "available"))
+    acc.total_earned = _as_int(_alias(payload, "total_earned"))
+    acc.frozen = _as_int(_alias(payload, "frozen"))
+    acc.used = _as_int(_alias(payload, "used"))
+    acc.expired = _as_int(_alias(payload, "expired"))
+
+    today = date.today()
+    this_month = _as_int(payload.get("currentMouthExpirePoint"))
+    next_month = _as_int(payload.get("nextMouthExpirePoint"))
+    if this_month:
+        acc.expiring.append(ExpiringBucket(
+            points=this_month, expire_date=month_end(today),
+            label="本月底到期积分"))
+    if next_month:
+        acc.expiring.append(ExpiringBucket(
+            points=next_month, expire_date=month_end_next(today),
+            label="下月底到期积分"))
+
+    # 兜底：某些版本可能直接给 expiring 列表
+    if not acc.expiring:
+        exp = _alias(payload, "expiring")
+        if exp is not None:
+            acc.expiring = _parse_expiring(exp)
     return acc
 
 
@@ -332,7 +433,6 @@ def _parse_expiring(payload: Any) -> List[ExpiringBucket]:
     if isinstance(payload, (int, float)):
         return [ExpiringBucket(points=_as_int(payload))]
     if isinstance(payload, dict):
-        # {"points": 340, "expireDate": "2026-11-30"}
         pts = _as_int(_alias(payload, "points_amount"))
         if pts or "expire" in payload:
             buckets.append(ExpiringBucket(
@@ -361,12 +461,11 @@ def parse_coupons(payload: Any, claimed: bool = False) -> List[Coupon]:
     """解析 ``query-my-coupons`` / ``available-coupons``。"""
     out: List[Coupon] = []
     for i, it in enumerate(_to_items(payload)):
-        cid = str(_alias(it, "id", default=f"coupon-{i}"))
         name = str(_alias(it, "name", default="") or "")
         if not name:
             continue
         out.append(Coupon(
-            coupon_id=cid,
+            coupon_id=str(_alias(it, "id", default=f"coupon-{i}")),
             name=name,
             expire_date=_as_date(_alias(it, "expire")),
             claimed=claimed,
@@ -376,53 +475,66 @@ def parse_coupons(payload: Any, claimed: bool = False) -> List[Coupon]:
 
 
 def parse_mall_products(payload: Any) -> List[MallProduct]:
-    """解析 ``mall-points-products``。"""
+    """解析 ``mall-points-products``。
+
+    真实结构里 ``price`` 对商品券恒为 0，真实面值藏在 ``spuName``（"21.9元…"），
+    这里两者都取，``cash_price`` 优先用名称解析出来的价格。
+    """
     out: List[MallProduct] = []
     for i, it in enumerate(_to_items(payload)):
         name = str(_alias(it, "name", default="") or "")
         if not name:
             continue
+        cash = _as_float(_alias(it, "cash"))
+        name_price = price_from_name(name)
+        if cash <= 0 and name_price > 0:
+            cash = name_price
         out.append(MallProduct(
             product_id=str(_alias(it, "id", default=f"prod-{i}")),
             name=name,
             points_price=_as_int(_alias(it, "points")),
-            cash_price=_as_float(_alias(it, "cash")),
+            cash_price=cash,
             stock=_as_int(_alias(it, "stock"), default=-1),
             category=str(_alias(it, "category", default="") or ""),
+            valid_until=_as_date(_alias(it, "expire")),
             raw=it,
         ))
     return out
 
 
 def parse_lottery(payload: Any) -> Optional[LotteryInfo]:
-    """解析 ``query-lottery-info``。"""
+    """解析 ``query-lottery-info``。
+
+    ⚠ 官方**不返回**中奖概率，也不返回奖品面值 —— 概率只能等分假设（并在报告中标注），
+    面值必须从奖品名里解析（"下单立减3元券" → 3 元，"麦辣三件套5折券" → 5 折）。
+    """
     if payload is None:
         return None
-    items = _to_items(payload)
     root = payload if isinstance(payload, dict) else {}
+    if not root:
+        return None
+
+    decision = root.get("drawDecision") if isinstance(root.get("drawDecision"), dict) else {}
     info = LotteryInfo(
-        name=str(_alias(root, "name", default="") or "积分抽奖"),
-        cost_points=_as_int(_alias(root, "cost")),
-        rules=str(_alias(root, "rules", default="") or ""),
+        name=str(root.get("activityName") or _alias(root, "name", default="") or "积分抽奖"),
+        cost_points=_as_int(root.get("drawPoint") or _alias(root, "cost")),
+        rules=str(root.get("drawTypeText") or _alias(root, "rules", default="") or ""),
+        eligible=decision.get("resourceEligible"),
+        ineligible_reason=str(decision.get("reason") or ""),
         raw=root,
     )
-    prize_items = _to_items(_alias(root, "prizes")) or items
-    for i, it in enumerate(prize_items):
+
+    for it in _to_items(root.get("prizes")):
         pname = str(_alias(it, "name", default="") or "")
         if not pname:
             continue
         prob = _alias(it, "probability")
         info.prizes.append(LotteryPrize(
             name=pname,
-            value_cny=_as_float(_alias(it, "value")),
+            value_cny=price_from_name(pname),
             probability=(float(_as_float(prob)) if prob is not None else None),
             raw=it,
         ))
-    # 消耗规则可能只在文案里，抽不出来就保留 0，报告里会显式提示
-    if not info.cost_points and info.rules:
-        m = re.search(r"(\d+)\s*积分", info.rules)
-        if m:
-            info.cost_points = int(m.group(1))
     if not info.prizes:
         return None
     return info
@@ -438,7 +550,7 @@ def parse_menu(payload: Any) -> List[MealPrice]:
         out.append(MealPrice(
             name=name,
             price_cny=_as_float(_alias(it, "cash"), default=0.0),
-            calories=_as_float(_alias(it, "calories", default=0.0)),
+            calories=_as_float(it.get("calories"), default=0.0),
             raw=it,
         ))
     return out
