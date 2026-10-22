@@ -15,7 +15,7 @@
 2. `我摸清了麦当劳官方 MCP 的六个坑，做了个积分资产管家`
 3. `1024 程序员节参赛作品：把麦当劳积分从"看得见"变成"算得清"`
 
-**正文**：直接用 [`docs/devlog.md`](./devlog.md) 全文，把 `mojc` 替换掉。
+**正文**：直接用 [`docs/devlog.md`](./devlog.md) 全文，把 `mjcocw` 替换掉。
 发布后把链接贴到项目仓库的 README 和 Issue 里，形成互链。
 
 **发布技巧**：
@@ -49,7 +49,7 @@
 实现上零第三方依赖，Python 3.9+ 直接跑，40 项自检。
 无 Token 也能跑（--mock 的字段结构和真实接口完全一致）。
 
-GitHub：https://github.com/mojc/mcd-points-steward
+GitHub：https://github.com/mjcocw/mcd-points-steward
 欢迎提 issue 补充你知道的接口细节。
 ```
 
@@ -65,7 +65,7 @@ GitHub：https://github.com/mojc/mcd-points-steward
 顺便算出：光把卡包里没领的券用掉，117 块。
 
 全程只读，不下单不领券。
-https://https://github.com/mojc/mcd-points-steward
+https://github.com/mjcocw/mcd-points-steward
 ```
 
 **小红书**（标题 + 正文 + 配图用 demo/report.html 截图）：
@@ -98,7 +98,7 @@ https://https://github.com/mojc/mcd-points-steward
 并告诉我"到期积分该抽奖、长期积分该换"。
 
 全程只读，不下单不领券，零依赖 clone 就能跑。
-GitHub：https://github.com/mojc/mcd-points-steward
+GitHub：https://github.com/mjcocw/mcd-points-steward
 ```
 
 ---
@@ -115,7 +115,7 @@ It also found:
 - 43 of 50 mall items are delisted
 - the lottery API never returns winning probabilities
 
-Read-only. Zero dependencies. GitHub → https://github.com/mojc/mcd-points-steward
+Read-only. Zero dependencies. GitHub → https://github.com/mjcocw/mcd-points-steward
 ```
 
 ---

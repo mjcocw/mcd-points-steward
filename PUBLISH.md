@@ -3,13 +3,40 @@
 > 报名截止：**2026-10-25 23:59** ｜ 定榜：**10-26 00:00** ｜ 排名 = GitHub 公开 Star 数
 > 官方仓库：https://github.com/M-China/mcd-developer-innovation-challenge
 >
-> ⚠️ **仓库地址已按本机 git 配置回填为 `mojc`**。如果你的 GitHub 用户名不是 `mojc`，
-> 推送前先跑这一条（把所有文档里的地址一次性改掉）：
+> ⚠️ **仓库地址已回填为 `mjcocw`**（你的 GitHub 账号，已通过 SSH 认证验证）。
+> 如果换账号或换机器，先用下面这条命令确认真实用户名，**不要**用 `git config user.name`
+> 推断——那个值只是提交署名，和 GitHub 账号无关：
+> ```bash
+> ssh -T git@github.com   # 返回 "Hi <你的用户名>! You've successfully authenticated"
+> ```
+> 若返回的用户名不是 `mjcocw`，把所有文档地址一次性改掉：
 > ```bash
 > cd C:/Users/Administrator/WorkBuddy/2026-10-22-12-44-16/mcd-points-steward
-> sed -i "s|mojc|<你的用户名>|g" README.md PUBLISH.md docs/*.md
+> sed -i "s|mjcocw|<你的用户名>|g" README.md PUBLISH.md docs/*.md
 > ```
 > 改完记得 `git add -A && git commit -m "docs: 修正仓库地址" && git push`。
+
+---
+
+## 第 0 步：推送认证排错（如果推送报错了看这里）
+
+GitHub 自2021 年 8 月起**关闭了「用户名 + 密码」推送**，只能走 SSH 或 PAT。
+本项目已配置好SSH（`~/.ssh/id_ed25519` + `ssh.github.com:443`），远程地址也已是 SSH 形式。
+
+| 报错 | 原因 | 解决 |
+|---|---|---|
+| `Invalid username or token. Password authentication is not supported` | 还在用 HTTPS + 密码 | 改用SSH：`git remote set-url origin git@github.com:mjcocw/mcd-points-steward.git` |
+| `Permission denied (publickey)` | SSH 公钥没登记到 GitHub | 复制 `~/.ssh/id_ed25519.pub` → https://github.com/settings/ssh/new |
+| `Repository not found` | 用户名写错，或仓库还没建 | 先 `ssh -T git@github.com` 确认真实用户名，再确认仓库已创建 |
+| `unknown option 'prefix'` | **两条命令粘成了一行** | 分开执行，或用 `&&` 连接（见下方⚠️） |
+
+⚠️ **最容易踩的坑**：不要把两条命令粘在同一行。正确写法：
+
+```bash
+git push -u origin main && git subtree push --prefix site origin gh-pages
+```
+
+❌ 错误：`git push -u origin maingit subtree push --prefix site origin gh-pages`
 
 ---
 
@@ -17,16 +44,16 @@
 
 **① 在 GitHub 新建仓库**
 - 仓库名：`mcd-points-steward`
-- 选 **Public**（必须是公开仓库）
+- 选**Public**（必须是公开仓库）
 - ⚠️ **不要**勾选 "Add a README"（本地已有，否则会冲突）
 
 **② 关联远程并推送**
 
 ```bash
 cd C:/Users/Administrator/WorkBuddy/2026-10-22-12-44-16/mcd-points-steward
-git remote add origin https://github.com/mojc/mcd-points-steward.git
+git remote set-url origin git@github.com:mjcocw/mcd-points-steward.git
 git branch -M main
-git push -u origin main
+git push -u origin main && git subtree push --prefix site origin gh-pages
 ```
 
 **③ 检查占位符是否还有残留**
@@ -55,10 +82,10 @@ git subtree push --prefix site origin gh-pages
 1. 仓库 → **Settings** → 左侧 **Pages**
 2. **Source** 选 `Deploy from a branch`
 3. **Branch** 选 `gh-pages` / 目录选 `/ (root)` → **Save**
-4. 等 1~2 分钟，得到 `https://mojc.github.io/mcd-points-steward/`
+4. 等 1~2 分钟，得到 `https://mjcocw.github.io/mcd-points-steward/`
 5. **验证链接能打开**（浏览器访问一下，确认报告正常渲染）
 
-README 首屏的「🍔 在线体验」已经指向这个地址（`https://mojc.github.io/mcd-points-steward/`），
+README 首屏的「🍔 在线体验」已经指向这个地址（`https://mjcocw.github.io/mcd-points-steward/`），
 Pages 生效后**无需再改任何文件**。
 
 > ⚠️ 顺序很重要：**先推 `gh-pages` 分支并开启 Pages，再确认链接能打开**，
@@ -81,7 +108,7 @@ Pages 生效后**无需再改任何文件**。
 ```
 【参赛申请】
 项目名称：麦麦积分资产管家 McPoints Steward
-项目地址：https://github.com/mojc/mcd-points-steward
+项目地址：https://github.com/mjcocw/mcd-points-steward
 项目简介：基于麦当劳官方 MCP 的积分资产体检工具，逆向出官方接口的六个隐藏行为（price 恒为 0、商城过半已下架、抽奖不公布概率等），用个人边际效用折扣 + 抽奖期望值 + 0/1 背包算出"该抽还是该换"。全程只读，零第三方依赖，无需 Token 也能 10 秒跑通。
 ```
 
@@ -132,12 +159,12 @@ git ls-files | grep -E "README.md|CONTEST_DECLARATION.md|MCP_INTEGRATION.md|work
 git ls-files -z | xargs -0 grep -n "Bearer [A-Za-z0-9]\{20,\}" && echo "!!! 有泄露 !!!" || echo "OK 无泄露"
 
 # 3. 确认克隆后能跑通
-cd /tmp && git clone https://github.com/mojc/mcd-points-steward.git && cd mcd-points-steward
+cd /tmp && git clone https://github.com/mjcocw/mcd-points-steward.git && cd mcd-points-steward
 python selftest.py && python main.py --mock --html /tmp/t.html && echo "OK 克隆后可跑通"
 ```
 
 - [ ] 仓库已推送且为 Public
-- [ ] README 无 `mojc` 占位符残留
+- [ ] README 无 `mjcocw` 占位符残留
 - [ ] README 首屏：横幅 + 在线演示链接 + 一句话差异点
 - [ ] 报名 Issue 已提交且收到「报名成功」回复
 - [ ] 掘金/腾讯云文章已发布，链接回填到 README
