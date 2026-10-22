@@ -1,0 +1,14 @@
+{
+  "_comment": "麦当劳 MCP 配置示例（脱敏版）。复制为 mcp-config.json 后填入你自己的 Token，切勿把真实 Token 提交到仓库。",
+  "_docs": "https://github.com/M-China/mcd-mcp-server",
+  "_token_note": "请通过环境变量注入，不要把真实 Token 写进任何被 git跟踪的文件。",
+  "mcpServers": {
+    "mcd-mcp": {
+      "type": "streamablehttp",
+      "url": "https://mcp.mcd.cn",
+      "headers": {
+        "Authorization": "Bearer ${MCD_MCP_TOKEN}"
+      }
+    }
+  }
+}
