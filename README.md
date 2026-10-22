@@ -1,11 +1,9 @@
 <div align="center">
 
-# 🍔 麦麦积分资产管家 · McPoints Steward
+<img src="assets/hero.svg" alt="麦麦积分资产管家 McPoints Steward" width="100%">
 
-**你的麦当劳积分到底值多少钱？哪些下个月就作废了？**
-**这个 Skill 把它算清楚，然后告诉你该抽还是该换。**
-
-`基于麦当劳官方 MCP Server · 已对接真实接口实测 · 零第三方依赖 · 离线可演示`
+**🍔 在线体验：打开就能看效果，不用 clone** → **[点我](https://mc-points-steward.pages.dev/)** ｜
+**📖 [开发实录全文](docs/devlog.md)** ｜ **📣 [传播文案包](docs/promotion.md)**
 
 </div>
 
@@ -307,11 +305,20 @@ mcd-points-steward/
 ├── MCP_INTEGRATION.md       # 真实接口结构 / 字段映射 / 降级策略
 ├── CONTEST_DECLARATION.md   # 参赛声明（官方原文）
 ├── workbuddy.md             # WorkBuddy 开发对话记录
+├── PUBLISH.md               # 推送 / 报名 / 传播 操作清单
 ├── LICENSE                  # MIT
 ├── requirements.txt         # 空（零第三方依赖）
+├── assets/
+│   └── hero.svg             # README 首屏横幅
+├── site/                    # 可发布的在线演示站（GitHub Pages 用）
+│   ├── index.html
+│   └── report.html
 ├── demo/
 │   ├── report.html          # 离线演示报告
 │   └── report-real.html     # 真实账户报告
+├── docs/
+│   ├── devlog.md            # 开发实录全文（社区文章，可直接发）
+│   └── promotion.md         # 各平台传播文案 + 涨星时间表
 ├── out/                     # 运行产物（已 gitignore）
 └── mcd_steward/
     ├── mcp_client.py        # ★ 持久化 keep-alive + 代理隧道 + 自动重连的 MCP 客户端

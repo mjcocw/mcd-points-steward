@@ -13,3 +13,6 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# 演示站构建产物（site/ 本身要入库）
+site/.cache/

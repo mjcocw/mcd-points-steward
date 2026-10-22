@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" role="img" aria-label="麦麦积分资产管家 McPoints Steward">
+  <rect width="1200" height="420" fill="#12141a"/>
+  <rect x="0" y="0" width="1200" height="6" fill="#DA291C"/>
+  <rect x="0" y="6" width="1200" height="3" fill="#FFC72C"/>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif">
+    <g transform="translate(70,72)">
+      <rect x="0" y="-21" width="330" height="30" rx="15" fill="#DA291C"/>
+      <text x="165" y="-1" fill="#ffffff" font-size="14" text-anchor="middle" font-weight="500">1024 程序员节 · 麦当劳 MCP 创意开发大赛</text>
+    </g>
+
+    <text x="70" y="152" fill="#ffffff" font-size="52" font-weight="700">麦麦积分资产管家</text>
+    <text x="70" y="196" fill="#FFC72C" font-size="26" font-weight="500" letter-spacing="1">McPoints Steward</text>
+
+    <text x="70" y="248" fill="#c9ced8" font-size="21">你的麦当劳积分到底值多少钱？哪些下个月就作废了？</text>
+    <text x="70" y="282" fill="#c9ced8" font-size="21">这个 Skill 把它算清楚，告诉你该抽还是该换。</text>
+
+    <g transform="translate(70,318)">
+      <rect x="0" y="0" width="152" height="52" rx="10" fill="#1c1f27"/>
+      <text x="76" y="21" fill="#8b929e" font-size="12" text-anchor="middle">已对接真实接口</text>
+      <text x="76" y="42" fill="#ffffff" font-size="17" font-weight="500" text-anchor="middle">35 个 Tool</text>
+
+      <rect x="168" y="0" width="152" height="52" rx="10" fill="#1c1f27"/>
+      <text x="244" y="21" fill="#8b929e" font-size="12" text-anchor="middle">只读接口</text>
+      <text x="244" y="42" fill="#ffffff" font-size="17" font-weight="500" text-anchor="middle">8 个 · 零写操作</text>
+
+      <rect x="336" y="0" width="152" height="52" rx="10" fill="#1c1f27"/>
+      <text x="412" y="21" fill="#8b929e" font-size="12" text-anchor="middle">自检覆盖</text>
+      <text x="412" y="42" fill="#ffffff" font-size="17" font-weight="500" text-anchor="middle">40 项全绿</text>
+
+      <rect x="504" y="0" width="152" height="52" rx="10" fill="#1c1f27"/>
+      <text x="580" y="21" fill="#8b929e" font-size="12" text-anchor="middle">依赖</text>
+      <text x="580" y="42" fill="#ffffff" font-size="17" font-weight="500" text-anchor="middle">零第三方库</text>
+
+      <rect x="672" y="0" width="300" height="52" rx="10" fill="#1c1f27"/>
+      <text x="822" y="21" fill="#8b929e" font-size="12" text-anchor="middle">三条路线量化对比</text>
+      <text x="822" y="42" fill="#ffffff" font-size="17" font-weight="500" text-anchor="middle">稳健 / 平衡 / 进攻</text>
+    </g>
+  </g>
+
+  <g transform="translate(1000,86)" font-family="Menlo,Consolas,monospace">
+    <rect x="0" y="0" width="130" height="34" rx="8" fill="#DA291C"/>
+    <text x="65" y="23" fill="#ffffff" font-size="15" text-anchor="middle" font-weight="500">★ Star</text>
+  </g>
+</svg>
